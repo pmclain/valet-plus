@@ -38,7 +38,7 @@ if (is_dir(VALET_HOME_PATH)) {
 /**
  * Allow Valet to be run more conveniently by allowing the Node proxy to run password-less sudo.
  */
-$app->command('install [--with-mariadb]', function ($withMariadb) {
+$app->command('install', function () {
     PhpFpm::checkInstallation();
 
     Nginx::stop();
@@ -52,12 +52,9 @@ $app->command('install [--with-mariadb]', function ($withMariadb) {
     Nginx::install();
     PhpFpm::install();
     DnsMasq::install();
-    Mysql::install($withMariadb ? 'mariadb' : 'mysql@5.7');
-    RedisTool::install();
     Mailhog::install();
     Nginx::restart();
     Valet::symlinkToUsersBin();
-    Mysql::setRootPassword();
 
     output(PHP_EOL.'<info>Valet installed successfully!</info>');
 })->descriptions('Install the Valet services');
@@ -66,10 +63,6 @@ $app->command('install [--with-mariadb]', function ($withMariadb) {
  * Fix common problems within the Valet+ installation.
  */
 $app->command('fix [--reinstall]', function ($reinstall) {
-    if (file_exists($_SERVER['HOME'] . '/.my.cnf')) {
-        warning('You have an .my.cnf file in your home directory. This can affect the mysql installation negatively.');
-    }
-
     PhpFpm::fix($reinstall);
     Pecl::fix();
 })->descriptions('Fixes common installation problems that prevent Valet+ from working');
@@ -306,7 +299,10 @@ if (is_dir(VALET_HOME_PATH)) {
             return;
         }
 
-        foreach($services as $service) {
+        foreach($services as $arg) {
+            $arg = explode(':', $arg);
+            $version = $arg[1] ?? null;
+            $service = $arg[0];
             switch($service) {
                 case 'nginx': {
                     Nginx::restart();
@@ -314,7 +310,7 @@ if (is_dir(VALET_HOME_PATH)) {
                 }
                 case 'mysql':
                 case 'mariadb': {
-                    Mysql::restart();
+                    Mysql::restart($version);
                     break;
                 }
                 case 'php': {
@@ -326,7 +322,7 @@ if (is_dir(VALET_HOME_PATH)) {
                     break;
                 }
                 case 'redis': {
-                    RedisTool::restart();
+                    RedisTool::restart($version);
                     break;
                 }
                 case 'mailhog': {
@@ -334,11 +330,11 @@ if (is_dir(VALET_HOME_PATH)) {
                     break;
                 }
                 case 'elasticsearch': {
-                    Elasticsearch::restart();
+                    Elasticsearch::restart($version);
                     break;
                 }
                 case 'rabbitmq': {
-                    RabbitMq::restart();
+                    RabbitMq::restart($version);
                     break;
                 }
                 case 'varnish': {

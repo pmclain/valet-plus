@@ -2,100 +2,60 @@
 
 namespace Valet;
 
-class RabbitMq extends AbstractService
+class RabbitMq
 {
-    var $brew;
-    var $cli;
-    var $files;
-    var $site;
+    const DEFAULT_VERSION = '3.7';
+    const NAME = 'rabbitmq';
+
+    /**
+     * @var CommandLine
+     */
+    private $cli;
 
     /**
      * Create a new instance.
      *
-     * @param  Brew          $brew
-     * @param  CommandLine   $cli
-     * @param  Filesystem    $files
-     * @param  Configuration $configuration
-     * @param  Site          $site
+     * @param CommandLine $cli
      */
-    function __construct(
-        Brew $brew,
-        CommandLine $cli,
-        Filesystem $files,
-        Configuration $configuration,
-        Site $site
+    public function __construct(
+        CommandLine $cli
     ) {
-        $this->cli   = $cli;
-        $this->brew  = $brew;
-        $this->site  = $site;
-        $this->files = $files;
-        parent::__construct($configuration);
-    }
-
-    /**
-     * Install the service.
-     *
-     * @return void
-     */
-    function install()
-    {
-        if ($this->installed()) {
-            info('[rabbitmq] already installed');
-        } else {
-            $this->brew->installOrFail('rabbitmq');
-            $this->cli->quietly('sudo brew services stop rabbitmq');
-        }
-        $this->setEnabled(self::STATE_ENABLED);
-        $this->restart();
-    }
-
-    /**
-     * Returns wether rabbitmq is installed or not.
-     *
-     * @return bool
-     */
-    function installed()
-    {
-        return $this->brew->installed('rabbitmq');
+        $this->cli = $cli;
     }
 
     /**
      * Restart the service.
      *
+     * @param string|null $version
      * @return void
      */
-    function restart()
+    public function restart(?string $version = null)
     {
-        if (!$this->installed() || !$this->isEnabled()) {
-            return;
-        }
-
         info('[rabbitmq] Restarting');
-        $this->cli->quietlyAsUser('brew services restart rabbitmq');
+        $version = $version ?? static::DEFAULT_VERSION;
+        $this->stop($version);
+        info('[rabbitmq] Starting');
+        $command = sprintf(
+            'docker run -d --name %s-%s -p "15672:15672" -p "5672:5672" -e "RABBITMQ_DEFAULT_USER=guest" -e "RABBITMQ_DEFAULT_PASSWORD=guest" rabbitmq:%s-management',
+            static::NAME,
+            $version,
+            $version
+        );
+
+        $this->cli->quietlyAsUser($command);
     }
 
     /**
      * Stop the service.
      *
+     * @param string|null $version
      * @return void
      */
-    function stop()
+    public function stop(?string $version = null)
     {
-        if (!$this->installed()) {
-            return;
-        }
-
         info('[rabbitmq] Stopping');
-        $this->cli->quietlyAsUser('brew services stop rabbitmq');
-    }
-
-    /**
-     * Prepare for uninstallation.
-     *
-     * @return void
-     */
-    function uninstall()
-    {
-        $this->stop();
+        $version = $version ?? static::DEFAULT_VERSION;
+        $this->cli->quietlyAsUser('docker stop ' . static::NAME . '-' . $version);
+        $this->cli->quietlyAsUser('docker rm ' . static::NAME . '-' . $version);
     }
 }

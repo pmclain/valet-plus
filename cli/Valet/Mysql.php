@@ -2,221 +2,97 @@
 
 namespace Valet;
 
-use DomainException;
 use mysqli;
 use MYSQLI_ASSOC;
 
 class Mysql
 {
-    const MYSQL_CONF_DIR = '/usr/local/etc';
-    const MYSQL_CONF = '/usr/local/etc/my.cnf';
-    const MAX_FILES_CONF = '/Library/LaunchDaemons/limit.maxfiles.plist';
-    const MYSQL_DIR = '/usr/local/var/mysql';
+    const DEFAULT_VERSION = '5.7';
+    const NAME = 'mysql';
     const MYSQL_ROOT_PASSWORD = 'root';
 
-    public $brew;
-    public $cli;
-    public $files;
-    public $configuration;
-    public $site;
-    public $systemDatabase = ['sys', 'performance_schema', 'information_schema', 'mysql@5.7'];
+    /**
+     * @var CommandLine
+     */
+    private $cli;
+
+    /**
+     * @var Filesystem
+     */
+    private $files;
+
+    /**
+     * @var Configuration
+     */
+    private $configuration;
+
+    /**
+     * @var array
+     */
+    private $systemDatabase = ['sys', 'performance_schema', 'information_schema', 'mysql@5.7'];
+
     /**
      * @var Mysqli
      */
-    protected $link = false;
+    private $link = false;
 
     /**
      * Create a new instance.
      *
-     * @param Brew          $brew
      * @param CommandLine   $cli
      * @param Filesystem    $files
      * @param Configuration $configuration
-     * @param Site          $site
      */
     public function __construct(
-        Brew $brew,
         CommandLine $cli,
         Filesystem $files,
-        Configuration $configuration,
-        Site $site
+        Configuration $configuration
     ) {
         $this->cli = $cli;
-        $this->brew = $brew;
-        $this->site = $site;
         $this->files = $files;
         $this->configuration = $configuration;
     }
 
     /**
-     * Install the service.
-     *
-     * @param $type
-     */
-    public function install($type = 'mysql@5.7')
-    {
-        $this->verifyType($type);
-        $currentlyInstalled = $this->installedVersion();
-        if ($currentlyInstalled) {
-            $type = $currentlyInstalled;
-        }
-
-        $this->removeConfiguration($type);
-        $this->files->copy(__DIR__ . '/../stubs/limit.maxfiles.plist', static::MAX_FILES_CONF);
-        $this->cli->quietly('launchctl load -w ' . static::MAX_FILES_CONF);
-
-        if (!$this->installedVersion()) {
-            $this->brew->installOrFail($type);
-        }
-
-        if (!$this->brew->installed('mysql-utilities')) {
-            $this->brew->installOrFail('mysql-utilities');
-        }
-
-        $this->stop();
-        $this->installConfiguration($type);
-        $this->restart();
-    }
-
-    /**
-     * check if type is valid.
-     *
-     * @param $type
-     *
-     * @throws DomainException
-     */
-    public function verifyType($type)
-    {
-        if (!\in_array($type, $this->supportedVersions())) {
-            throw new DomainException('Invalid Mysql type given. Available: mysql@5.7/mariadb');
-        }
-    }
-
-    /**
-     * Get supported version of database.
-     *
-     * @return array
-     */
-    public function supportedVersions()
-    {
-        return ['mysql@5.7', 'mariadb'];
-    }
-
-    /**
-     * Get installed version of database system.
-     *
-     * @param bool $default
-     *
-     * @return bool|string
-     */
-    public function installedVersion($default = false)
-    {
-        return collect($this->supportedVersions())->filter(function ($version) {
-            return $this->brew->installed($version);
-        })->first(null, $default);
-    }
-
-    /**
-     * Remove current configuration before install new version.
-     *
-     * @param string $type
-     */
-    private function removeConfiguration($type = 'mysql@5.7')
-    {
-        $this->files->unlink(static::MYSQL_CONF);
-        $this->files->unlink(static::MYSQL_CONF . '.default');
-    }
-
-    /**
      * Stop the Mysql service.
+     * @param string|null $version
      */
-    public function stop()
+    public function stop(?string $version = null)
     {
-        $version = $this->installedVersion('mysql@5.7');
-        info('[' . $version . '] Stopping');
-
-        $this->cli->quietly('sudo brew services stop ' . $version);
-        $this->cli->quietlyAsUser('brew services stop ' . $version);
-    }
-
-    /**
-     * Install the configuration files.
-     *
-     * @param string $type
-     */
-    public function installConfiguration($type = 'mysql@5.7')
-    {
-        info('[' . $type . '] Configuring');
-
-        $this->files->chmodPath(static::MYSQL_DIR, 0777);
-
-        if (!$this->files->isDir($directory = static::MYSQL_CONF_DIR)) {
-            $this->files->mkdirAsUser($directory);
-        }
-
-        $contents = $this->files->get(__DIR__ . '/../stubs/my.cnf');
-        if ($type === 'mariadb') {
-            $contents = \str_replace('show_compatibility_56=ON', '', $contents);
-        }
-
-        $this->files->putAsUser(
-            static::MYSQL_CONF,
-            \str_replace('VALET_HOME_PATH', VALET_HOME_PATH, $contents)
-        );
+        info('[mysql] Stopping');
+        $version = $version ?? static::DEFAULT_VERSION;
+        $this->cli->quietlyAsUser('docker stop ' . static::NAME . '-' . $version);
+        $this->cli->quietlyAsUser('docker rm ' . static::NAME . '-' . $version);
     }
 
     /**
      * Restart the Mysql service.
+     * @param string|null $version
      */
-    public function restart()
+    public function restart(?string $version = null)
     {
-        $version = $this->installedVersion() ?: 'mysql@5.7';
-        info('[' . $version . '] Restarting');
-        $this->cli->quietlyAsUser('brew services restart ' . $version);
+        info('[mysql] Restarting');
+        $version = $version ?? static::DEFAULT_VERSION;
+        $this->stop($version);
+        $this->start($version);
     }
 
     /**
-     * Set root password of Mysql.
-     * @param string $oldPwd
-     * @param string $newPwd
+     * @param string|null $version
      */
-    public function setRootPassword($oldPwd = '', $newPwd = self::MYSQL_ROOT_PASSWORD)
+    public function start(?string $version = null)
     {
-        $success = true;
-        $this->cli->runAsUser("mysqladmin -u root --password='".$oldPwd."' password ".$newPwd, function() use (&$success) {
-            warning('Setting password for root user failed. ');
-            $success = false;
-        });
-
-        if ($success !== false) {
-            $config = $this->configuration->read();
-            if (!isset($config['mysql'])) {
-                $config['mysql'] = [];
-            }
-            $config['mysql']['password'] = $newPwd;
-            $this->configuration->write($config);
-        }
-    }
-
-    /**
-     * Returns the stored password from the config. If not configured returns the default root password.
-     */
-    private function getRootPassword()
-    {
-        $config = $this->configuration->read();
-        if (isset($config['mysql']) && isset($config['mysql']['password'])) {
-            return $config['mysql']['password'];
-        }
-
-        return self::MYSQL_ROOT_PASSWORD;
-    }
-
-    /**
-     * Prepare Mysql for uninstallation.
-     */
-    public function uninstall()
-    {
-        $this->stop();
+        info('[mysql] Starting');
+        $version = $version ?? static::DEFAULT_VERSION;
+        $command = sprintf(
+            'docker run -d --name %s-%s -p 3306:3306 -v "dbdata-%s:/var/lib/mysql" -e "MYSQL_ROOT_PASSWORD=%s" mysql:%s',
+            static::NAME,
+            $version,
+            $version,
+            $this->getRootPassword(),
+            $version
+        );
+        $this->cli->quietlyAsUser($command);
     }
 
     /**
@@ -225,47 +101,6 @@ class Mysql
     public function listDatabases()
     {
         table(['Database'], $this->getDatabases());
-    }
-
-    /**
-     * Get exists databases.
-     *
-     * @return array|bool
-     */
-    protected function getDatabases()
-    {
-        $result = $this->query('SHOW DATABASES');
-
-        if (!$result) {
-            return false;
-        }
-
-        return collect($result->fetch_all(MYSQLI_ASSOC))->reject(function ($row) {
-            return \in_array($row['Database'], $this->getSystemDatabase());
-        })->map(function ($row) {
-            return [$row['Database']];
-        })->toArray();
-    }
-
-    /**
-     * Run Mysql query.
-     *
-     * @param $query
-     * @param bool $escape
-     *
-     * @return bool|\mysqli_result
-     */
-    protected function query($query, $escape = true)
-    {
-        $link = $this->getConnection();
-
-        $query = $escape ? $this->escape($query) : $query;
-
-        return tap($link->query($query), function ($result) use ($link) {
-            if (!$result) { // throw mysql error
-                warning(\mysqli_error($link));
-            }
-        });
     }
 
     /**
@@ -281,7 +116,7 @@ class Mysql
         }
 
         // Create connection
-        $this->link = new mysqli('localhost', 'root', $this->getRootPassword());
+        $this->link = new mysqli('127.0.0.1', 'root', $this->getRootPassword());
 
         // Check connection
         if ($this->link->connect_error) {
@@ -291,28 +126,6 @@ class Mysql
         }
 
         return $this->link;
-    }
-
-    /**
-     * escape string of query via myslqi.
-     *
-     * @param string $string
-     *
-     * @return string
-     */
-    protected function escape($string)
-    {
-        return \mysqli_real_escape_string($this->getConnection(), $string);
-    }
-
-    /**
-     * Get default databases of mysql.
-     *
-     * @return array
-     */
-    protected function getSystemDatabase()
-    {
-        return $this->systemDatabase;
     }
 
     /**
@@ -349,18 +162,6 @@ class Mysql
             $gzip = ' | gzip -cd | ';
         }
         $this->cli->passthru('pv ' . \escapeshellarg($file) . $gzip . 'mysql ' . \escapeshellarg($database));
-    }
-
-    /**
-     * Get database name via name or current dir.
-     *
-     * @param $database
-     *
-     * @return string
-     */
-    protected function getDatabaseName($database = '')
-    {
-        return $database ?: $this->getDirName();
     }
 
     /**
@@ -475,5 +276,93 @@ class Mysql
         );
 
         $this->cli->quietly('open ' . $tmpName);
+    }
+
+    /**
+     * Get database name via name or current dir.
+     *
+     * @param $database
+     *
+     * @return string
+     */
+    protected function getDatabaseName($database = '')
+    {
+        return $database ?: $this->getDirName();
+    }
+
+    /**
+     * Get default databases of mysql.
+     *
+     * @return array
+     */
+    protected function getSystemDatabase()
+    {
+        return $this->systemDatabase;
+    }
+
+    /**
+     * Get exists databases.
+     *
+     * @return array|bool
+     */
+    protected function getDatabases()
+    {
+        $result = $this->query('SHOW DATABASES');
+
+        if (!$result) {
+            return false;
+        }
+
+        return collect($result->fetch_all(MYSQLI_ASSOC))->reject(function ($row) {
+            return \in_array($row['Database'], $this->getSystemDatabase());
+        })->map(function ($row) {
+            return [$row['Database']];
+        })->toArray();
+    }
+
+    /**
+     * escape string of query via myslqi.
+     *
+     * @param string $string
+     *
+     * @return string
+     */
+    protected function escape($string)
+    {
+        return \mysqli_real_escape_string($this->getConnection(), $string);
+    }
+
+    /**
+     * Run Mysql query.
+     *
+     * @param $query
+     * @param bool $escape
+     *
+     * @return bool|\mysqli_result
+     */
+    protected function query($query, $escape = true)
+    {
+        $link = $this->getConnection();
+
+        $query = $escape ? $this->escape($query) : $query;
+
+        return tap($link->query($query), function ($result) use ($link) {
+            if (!$result) { // throw mysql error
+                warning(\mysqli_error($link));
+            }
+        });
+    }
+
+    /**
+     * Returns the stored password from the config. If not configured returns the default root password.
+     */
+    private function getRootPassword()
+    {
+        $config = $this->configuration->read();
+        if (isset($config['mysql']) && isset($config['mysql']['password'])) {
+            return $config['mysql']['password'];
+        }
+
+        return self::MYSQL_ROOT_PASSWORD;
     }
 }

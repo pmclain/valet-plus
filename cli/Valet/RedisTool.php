@@ -2,115 +2,60 @@
 
 namespace Valet;
 
-class RedisTool extends AbstractService
+class RedisTool
 {
-    var $brew;
-    var $cli;
-    var $files;
-    var $site;
+    const DEFAULT_VERSION = '5';
+    const NAME = 'redis';
 
-    const REDIS_CONF = '/usr/local/etc/redis.conf';
+    /**
+     * @var CommandLine
+     */
+    private $cli;
 
     /**
      * Create a new instance.
      *
-     * @param  Brew          $brew
-     * @param  CommandLine   $cli
-     * @param  Filesystem    $files
-     * @param  Configuration $configuration
-     * @param  Site          $site
+     * @param CommandLine $cli
      */
-    function __construct(
-        Brew $brew,
-        CommandLine $cli,
-        Filesystem $files,
-        Configuration $configuration,
-        Site $site
+    public function __construct(
+        CommandLine $cli
     ) {
-        $this->cli   = $cli;
-        $this->brew  = $brew;
-        $this->site  = $site;
-        $this->files = $files;
-        parent::__construct($configuration);
-    }
-
-    /**
-     * Install the service.
-     *
-     * @return void
-     */
-    function install()
-    {
-        if ($this->installed()) {
-            info('[redis] already installed');
-        } else {
-            $this->brew->installOrFail('redis');
-            $this->cli->quietly('sudo brew services stop redis');
-        }
-
-        $this->installConfiguration();
-        $this->setEnabled(self::STATE_ENABLED);
-        $this->restart();
-    }
-
-    /**
-     * Returns wether redis is installed or not.
-     *
-     * @return bool
-     */
-    function installed()
-    {
-        return $this->brew->installed('redis');
-    }
-
-    /**
-     * Install the configuration file.
-     *
-     * @return void
-     */
-    function installConfiguration()
-    {
-        $this->files->copy(__DIR__.'/../stubs/redis.conf', static::REDIS_CONF);
+        $this->cli = $cli;
     }
 
     /**
      * Restart the service.
      *
+     * @param string|null $version
      * @return void
      */
-    function restart()
+    public function restart(?string $version = null)
     {
-        if (!$this->installed() || !$this->isEnabled()) {
-            return;
-        }
-
         info('[redis] Restarting');
-        $this->cli->quietlyAsUser('brew services restart redis');
+        $version = $version ?? static::DEFAULT_VERSION;
+        $this->stop($version);
+        info('[redis] Starting');
+        $command = sprintf(
+            'docker run -d --name %s-%s -p 6379:6379 redis:%s',
+            static::NAME,
+            $version,
+            $version
+        );
+
+        $this->cli->quietlyAsUser($command);
     }
 
     /**
      * Stop the service.
      *
+     * @param string|null $version
      * @return void
      */
-    function stop()
+    public function stop(?string $version = null)
     {
-        if (!$this->installed()) {
-            return;
-        }
-
         info('[redis] Stopping');
-        $this->cli->quietly('sudo brew services stop redis');
-        $this->cli->quietlyAsUser('brew services stop redis');
-    }
-
-    /**
-     * Prepare for uninstallation.
-     *
-     * @return void
-     */
-    function uninstall()
-    {
-        $this->stop();
+        $version = $version ?? static::DEFAULT_VERSION;
+        $this->cli->quietlyAsUser('docker stop ' . static::NAME . '-' . $version);
+        $this->cli->quietlyAsUser('docker rm ' . static::NAME . '-' . $version);
     }
 }

@@ -4,90 +4,59 @@ namespace Valet;
 
 class Elasticsearch
 {
-    var $brew;
-    var $cli;
-    var $files;
-    var $configuration;
-    var $site;
+    const DEFAULT_VERSION = '5.2';
+    const NAME = 'elasticsearch';
+
+    /**
+     * @var CommandLine
+     */
+    private $cli;
 
     /**
      * Create a new instance.
      *
-     * @param  Brew $brew
-     * @param  CommandLine $cli
-     * @param  Filesystem $files
-     * @param  Configuration $configuration
-     * @param  Site $site
+     * @param CommandLine $cli
      */
-    function __construct(Brew $brew, CommandLine $cli, Filesystem $files,
-                         Configuration $configuration, Site $site)
-    {
+    public function __construct(
+        CommandLine $cli
+    ) {
         $this->cli = $cli;
-        $this->brew = $brew;
-        $this->site = $site;
-        $this->files = $files;
-        $this->configuration = $configuration;
-    }
-
-    /**
-     * Install the service.
-     *
-     * @return void
-     */
-    function install()
-    {
-        if ($this->installed()) {
-            info('[elasticsearch] already installed');
-            return;
-        }
-
-        $this->cli->quietlyAsUser('brew cask install java');
-        $this->brew->installOrFail('elasticsearch@2.4');
-        $this->restart();
-    }
-
-    function installed() {
-        return $this->brew->installed('elasticsearch@2.4');
     }
 
     /**
      * Restart the service.
      *
+     * @param string|null $version
      * @return void
      */
-    function restart()
+    public function restart(?string $version = null)
     {
-        if (!$this->installed()) {
-            return;
-        }
-
         info('[elasticsearch] Restarting');
-        $this->cli->quietlyAsUser('brew services restart elasticsearch@2.4');
+        $version = $version ?? static::DEFAULT_VERSION;
+        $this->stop($version);
+        info('[elasticsearch] Starting');
+        $command = sprintf(
+            'docker run -d --name %s-%s -p 9200:9200 -v "esdata-%s:/usr/share/elasticsearch/data" -e "discovery.type=single-node" elasticsearch:%s',
+            static::NAME,
+            $version,
+            $version,
+            $version
+        );
+
+        $this->cli->quietlyAsUser($command);
     }
 
     /**
      * Stop the service.
      *
+     * @param string|null $version
      * @return void
      */
-    function stop()
+    public function stop(?string $version = null)
     {
-        if (!$this->installed()) {
-            return;
-        }
-
         info('[elasticsearch] Stopping');
-        $this->cli->quietly('sudo brew services stop elasticsearch@2.4');
-        $this->cli->quietlyAsUser('brew services stop elasticsearch@2.4');
-    }
-
-    /**
-     * Prepare for uninstallation.
-     *
-     * @return void
-     */
-    function uninstall()
-    {
-        $this->stop();
+        $version = $version ?? static::DEFAULT_VERSION;
+        $this->cli->quietlyAsUser('docker stop ' . static::NAME . '-' . $version);
+        $this->cli->quietlyAsUser('docker rm ' . static::NAME . '-' . $version);
     }
 }
