@@ -6,57 +6,62 @@ class Elasticsearch
 {
     const DEFAULT_VERSION = '5.2';
     const NAME = 'elasticsearch';
+    const IMAGE = 'elasticsearch';
 
     /**
-     * @var CommandLine
+     * @var Docker
      */
-    private $cli;
+    private $docker;
 
     /**
      * Create a new instance.
      *
-     * @param CommandLine $cli
+     * @param Docker $docker
      */
     public function __construct(
-        CommandLine $cli
+        Docker $docker
     ) {
-        $this->cli = $cli;
+        $this->docker = $docker;
     }
 
     /**
      * Restart the service.
      *
      * @param string|null $version
-     * @return void
+     * @throws \Exception
      */
-    public function restart(?string $version = null)
+    public function restart(?string $version = null): void
     {
         info('[elasticsearch] Restarting');
         $version = $version ?? static::DEFAULT_VERSION;
         $this->stop($version);
-        info('[elasticsearch] Starting');
-        $command = sprintf(
-            'docker run -d --name %s-%s -p 9200:9200 -v "esdata-%s:/usr/share/elasticsearch/data" -e "discovery.type=single-node" elasticsearch:%s',
-            static::NAME,
-            $version,
-            $version,
-            $version
-        );
 
-        $this->cli->quietlyAsUser($command);
+        $image = static::IMAGE . ':' . $version;
+        $this->docker->installImage($image);
+        info('[elasticsearch] Starting');
+
+        $this->docker->run(
+            static::NAME . '-' . $version,
+            $image,
+            ['9200:9200'],
+            'esdata-' . $version . ':/usr/share/elasticsearch/data',
+            ['discovery.type=single-node']
+        );
     }
 
     /**
      * Stop the service.
      *
      * @param string|null $version
-     * @return void
+     * @throws \Exception
      */
-    public function stop(?string $version = null)
+    public function stop(?string $version = null): void
     {
         info('[elasticsearch] Stopping');
         $version = $version ?? static::DEFAULT_VERSION;
-        $this->cli->quietlyAsUser('docker stop ' . static::NAME . '-' . $version);
-        $this->cli->quietlyAsUser('docker rm ' . static::NAME . '-' . $version);
+        $name = static::NAME . '-' . $version;
+
+        $this->docker->stop($name);
+        $this->docker->remove($name);
     }
 }

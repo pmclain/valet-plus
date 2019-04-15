@@ -6,56 +6,59 @@ class RedisTool
 {
     const DEFAULT_VERSION = '5';
     const NAME = 'redis';
+    const IMAGE = 'redis';
 
     /**
-     * @var CommandLine
+     * @var Docker
      */
-    private $cli;
+    private $docker;
 
     /**
      * Create a new instance.
      *
-     * @param CommandLine $cli
+     * @param Docker $docker
      */
     public function __construct(
-        CommandLine $cli
+        Docker $docker
     ) {
-        $this->cli = $cli;
+        $this->docker = $docker;
     }
 
     /**
      * Restart the service.
      *
      * @param string|null $version
-     * @return void
+     * @throws \Exception
      */
-    public function restart(?string $version = null)
+    public function restart(?string $version = null): void
     {
         info('[redis] Restarting');
         $version = $version ?? static::DEFAULT_VERSION;
         $this->stop($version);
-        info('[redis] Starting');
-        $command = sprintf(
-            'docker run -d --name %s-%s -p 6379:6379 redis:%s',
-            static::NAME,
-            $version,
-            $version
-        );
 
-        $this->cli->quietlyAsUser($command);
+        $image = static::IMAGE . ':' . $version;
+        $this->docker->installImage($image);
+        info('[redis] Starting');
+
+        $this->docker->run(
+            static::NAME . '-' . $version,
+            $image
+        );
     }
 
     /**
      * Stop the service.
      *
      * @param string|null $version
-     * @return void
+     * @throws \Exception
      */
-    public function stop(?string $version = null)
+    public function stop(?string $version = null): void
     {
         info('[redis] Stopping');
         $version = $version ?? static::DEFAULT_VERSION;
-        $this->cli->quietlyAsUser('docker stop ' . static::NAME . '-' . $version);
-        $this->cli->quietlyAsUser('docker rm ' . static::NAME . '-' . $version);
+        $name = static::NAME . '-' . $version;
+
+        $this->docker->stop($name);
+        $this->docker->remove($name);
     }
 }

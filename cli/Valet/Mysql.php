@@ -9,12 +9,18 @@ class Mysql
 {
     const DEFAULT_VERSION = '5.7';
     const NAME = 'mysql';
+    const IMAGE = 'mysql';
     const MYSQL_ROOT_PASSWORD = 'root';
 
     /**
      * @var CommandLine
      */
     private $cli;
+
+    /**
+     * @var Docker
+     */
+    private $docker;
 
     /**
      * @var Filesystem
@@ -42,34 +48,41 @@ class Mysql
      * @param CommandLine   $cli
      * @param Filesystem    $files
      * @param Configuration $configuration
+     * @param Docker $docker
      */
     public function __construct(
         CommandLine $cli,
         Filesystem $files,
-        Configuration $configuration
+        Configuration $configuration,
+        Docker $docker
     ) {
         $this->cli = $cli;
         $this->files = $files;
         $this->configuration = $configuration;
+        $this->docker = $docker;
     }
 
     /**
      * Stop the Mysql service.
      * @param string|null $version
+     * @throws \Exception
      */
-    public function stop(?string $version = null)
+    public function stop(?string $version = null): void
     {
         info('[mysql] Stopping');
         $version = $version ?? static::DEFAULT_VERSION;
-        $this->cli->quietlyAsUser('docker stop ' . static::NAME . '-' . $version);
-        $this->cli->quietlyAsUser('docker rm ' . static::NAME . '-' . $version);
+        $name = static::NAME . '-' . $version;
+
+        $this->docker->stop($name);
+        $this->docker->remove($name);
     }
 
     /**
      * Restart the Mysql service.
      * @param string|null $version
+     * @throws \Exception
      */
-    public function restart(?string $version = null)
+    public function restart(?string $version = null): void
     {
         info('[mysql] Restarting');
         $version = $version ?? static::DEFAULT_VERSION;
@@ -79,20 +92,22 @@ class Mysql
 
     /**
      * @param string|null $version
+     * @throws \Exception
      */
-    public function start(?string $version = null)
+    public function start(?string $version = null): void
     {
-        info('[mysql] Starting');
         $version = $version ?? static::DEFAULT_VERSION;
-        $command = sprintf(
-            'docker run -d --name %s-%s -p 3306:3306 -v "dbdata-%s:/var/lib/mysql" -e "MYSQL_ROOT_PASSWORD=%s" mysql:%s',
-            static::NAME,
-            $version,
-            $version,
-            $this->getRootPassword(),
-            $version
+        $image = static::IMAGE . ':' . $version;
+        $this->docker->installImage($image);
+
+        info('[mysql] Starting');
+        $this->docker->run(
+            static::NAME . '-' . $version,
+            $image,
+            ['3306:3306'],
+            'dbdata-' . $version . ':/var/lib/mysql',
+            ['MYSQL_ROOT_PASSWORD=' . $this->getRootPassword()]
         );
-        $this->cli->quietlyAsUser($command);
     }
 
     /**

@@ -6,11 +6,12 @@ class Varnish
 {
     const DEFAULT_VERSION = '4';
     const NAME = 'varnish';
+    const IMAGE = 'pmclain/m2-varnish';
 
     /**
-     * @var CommandLine
+     * @var Docker
      */
-    private $cli;
+    private $docker;
 
     /**
      * @var Filesystem
@@ -20,14 +21,14 @@ class Varnish
     /**
      * Create a new instance.
      *
-     * @param CommandLine $cli
+     * @param Docker $docker
      * @param Filesystem $file
      */
     public function __construct(
-        CommandLine $cli,
+        Docker $docker,
         Filesystem $file
     ) {
-        $this->cli = $cli;
+        $this->docker = $docker;
         $this->file = $file;
     }
 
@@ -35,41 +36,42 @@ class Varnish
     {
         info('[varnish] Installing');
         $dockerFile = $this->file->realpath(__DIR__ . '/../../cli/stubs/varnish');
-        $this->cli->runAsUser('docker build ' . $dockerFile . ' -t pmclain/m2-varnish');
+        $this->docker->build($dockerFile, static::IMAGE);
     }
 
     /**
      * Restart the service.
      *
-     * @param string|null $version
-     * @return void
+     * @throws \Exception
      */
-    public function restart(?string $version = null)
+    public function restart()
     {
         info('[varnish] Restarting');
-        $version = $version ?? static::DEFAULT_VERSION;
-        $this->stop($version);
-        info('[rabbitmq] Starting');
-        $command = sprintf(
-            'docker run -d --name %s-%s -p "6081:6081" -p "6085:6085" -e "BACKENDS_PORT=8080" pmclain/m2-varnish',
-            static::NAME,
-            $version
-        );
+        $this->stop();
 
-        $this->cli->quietlyAsUser($command);
+        $this->install();
+        info('[varnish] Starting');
+
+        $this->docker->run(
+            static::NAME . '-' . static::DEFAULT_VERSION,
+            static::IMAGE,
+            ['6081:6081', '6085:6085'],
+            '',
+            ['BACKENDS_PORT=8080']
+        );
     }
 
     /**
      * Stop the service.
      *
-     * @param string|null $version
-     * @return void
+     * @throws \Exception
      */
-    public function stop(?string $version = null)
+    public function stop()
     {
         info('[varnish] Stopping');
-        $version = $version ?? static::DEFAULT_VERSION;
-        $this->cli->quietlyAsUser('docker stop ' . static::NAME . '-' . $version);
-        $this->cli->quietlyAsUser('docker rm ' . static::NAME . '-' . $version);
+        $name = static::NAME . '-' . static::DEFAULT_VERSION;
+
+        $this->docker->stop($name);
+        $this->docker->remove($name);
     }
 }

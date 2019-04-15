@@ -6,56 +6,62 @@ class RabbitMq
 {
     const DEFAULT_VERSION = '3.7';
     const NAME = 'rabbitmq';
+    const IMAGE = 'rabbitmq';
 
     /**
-     * @var CommandLine
+     * @var Docker
      */
-    private $cli;
+    private $docker;
 
     /**
      * Create a new instance.
      *
-     * @param CommandLine $cli
+     * @param Docker $docker
      */
     public function __construct(
-        CommandLine $cli
+        Docker $docker
     ) {
-        $this->cli = $cli;
+        $this->docker = $docker;
     }
 
     /**
      * Restart the service.
      *
      * @param string|null $version
-     * @return void
+     * @throws \Exception
      */
-    public function restart(?string $version = null)
+    public function restart(?string $version = null): void
     {
         info('[rabbitmq] Restarting');
         $version = $version ?? static::DEFAULT_VERSION;
         $this->stop($version);
-        info('[rabbitmq] Starting');
-        $command = sprintf(
-            'docker run -d --name %s-%s -p "15672:15672" -p "5672:5672" -e "RABBITMQ_DEFAULT_USER=guest" -e "RABBITMQ_DEFAULT_PASSWORD=guest" rabbitmq:%s-management',
-            static::NAME,
-            $version,
-            $version
-        );
 
-        $this->cli->quietlyAsUser($command);
+        $image = static::IMAGE . ':' . $version . '-management';
+        $this->docker->installImage($image);
+        info('[rabbitmq] Starting');
+
+        $this->docker->run(
+            static::NAME . '-' . $version,
+            $image,
+            ['15672:15672', '5672:5672'],
+            '',
+            ['RABBITMQ_DEFAULT_USER=guest', 'RABBITMQ_DEFAULT_PASSWORD=guest']
+        );
     }
 
     /**
      * Stop the service.
      *
      * @param string|null $version
-     * @return void
+     * @throws \Exception
      */
-    public function stop(?string $version = null)
+    public function stop(?string $version = null): void
     {
-        info('[rabbitmq] Stopping');
+        info('[elasticsearch] Stopping');
         $version = $version ?? static::DEFAULT_VERSION;
-        $this->cli->quietlyAsUser('docker stop ' . static::NAME . '-' . $version);
-        $this->cli->quietlyAsUser('docker rm ' . static::NAME . '-' . $version);
+        $name = static::NAME . '-' . $version;
+
+        $this->docker->stop($name);
+        $this->docker->remove($name);
     }
 }
