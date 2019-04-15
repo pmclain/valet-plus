@@ -23,3 +23,8 @@ valet start elasticsearch:6
 The version specified when starting the service must also be specified when stopping the service.
 
 Named volumes are mounted for ElasticSearch and MySql services. Each service version has a unique volume.
+
+### M2 Varnish Support
+The domain is optional when running the command from a project directory.  
+Enable: `valet fpc-on [domain]`  
+Disable: `valet fpc-off [domain]`

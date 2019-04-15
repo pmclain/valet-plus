@@ -197,6 +197,32 @@ if (is_dir(VALET_HOME_PATH)) {
     })->descriptions('Secure the given domain with a trusted TLS certificate');
 
     /**
+     * Enable varnish for a domain
+     */
+    $app->command('fpc-on [domain]', function ($domain = null) {
+        $url = ($domain ?: Site::host(getcwd())).'.'.Configuration::read()['domain'];
+
+        Site::varnish($url, true);
+
+        Nginx::restart();
+
+        info('The ['.$url.'] site has been varnished.');
+    })->descriptions('Proxy all requests for site through varnish.');
+
+    /**
+     * Disable varnish for a domain
+     */
+    $app->command('fpc-off [domain]', function ($domain = null) {
+        $url = ($domain ?: Site::host(getcwd())).'.'.Configuration::read()['domain'];
+
+        Site::varnish($url, false);
+
+        Nginx::restart();
+
+        info('The ['.$url.'] site has been unvarnished.');
+    })->descriptions('Remove proxy all requests for site through varnish.');
+
+    /**
      * Stop serving the given domain over HTTPS and remove the trusted TLS certificate.
      */
     $app->command('unsecure [domain]', function ($domain = null) {
@@ -755,11 +781,11 @@ if (is_dir(VALET_HOME_PATH)) {
                 return;
             case 'enable':
             case 'on':
-                Varnish::enable();
+                Varnish::restart();
                 return;
             case 'disable':
             case 'off':
-                Varnish::disable();
+                Varnish::stop();
                 return;
         }
     })->descriptions('Enable / disable Varnish');

@@ -168,7 +168,12 @@ class Site
         foreach ($secured as $url) {
             $proxy = $this->proxied($url);
             $this->unsecure($url);
-            $this->configure(str_replace('.'.$oldDomain, '.'.$domain, $url), true, $proxy);
+            $this->configure(
+                str_replace('.'.$oldDomain, '.'.$domain, $url),
+                true,
+                $proxy,
+                $this->isVarnished($url)
+            );
         }
     }
 
@@ -192,6 +197,16 @@ class Site
         return null;
     }
 
+    private function isVarnished($url): bool
+    {
+        $path = VALET_HOME_PATH . '/Nginx/' . $url;
+        if (!$this->files->exists($path)) {
+            return false;
+        }
+
+        return strpos($this->files->get($path), 'http://127.0.0.1:6081') !== false;
+    }
+
     /**
      * Configures the domain to proxy to a destination. Null disables the proxy.
      *
@@ -200,7 +215,7 @@ class Site
      */
     function proxy($url, $to = null)
     {
-        $this->configure($url, in_array($url, $this->secured()), $to);
+        $this->configure($url, in_array($url, $this->secured()), $to, $this->isVarnished($url));
     }
 
     /**
@@ -222,9 +237,10 @@ class Site
      * @param string $url
      * @param bool $secure
      * @param null $proxy
+     * @param bool $varnish
      * @return void
      */
-    function configure($url, $secure = false, $proxy = null)
+    function configure($url, $secure = false, $proxy = null, $varnish = false)
     {
         $this->unsecure($url);
 
@@ -234,7 +250,7 @@ class Site
         }
 
         $this->files->putAsUser(
-            VALET_HOME_PATH . '/Nginx/' . $url, $this->buildNginxConfig($url, $secure, $proxy)
+            VALET_HOME_PATH . '/Nginx/' . $url, $this->buildNginxConfig($url, $secure, $proxy, $varnish)
         );
     }
 
@@ -244,10 +260,19 @@ class Site
      * @param  string $url
      * @return void
      */
-    function secure($url)
+    public function secure($url): void
     {
         $proxied = $this->proxied($url);
-        $this->configure($url, true, $proxied);
+        $this->configure($url, true, $proxied, $this->isVarnished($url));
+    }
+
+    /**
+     * @param string $url
+     * @param bool $enable
+     */
+    public function varnish(string $url, $enable = false): void
+    {
+        $this->configure($url, in_array($url, $this->secured()), $this->proxied($url), $enable);
     }
 
     /**
@@ -256,7 +281,7 @@ class Site
      * @param  string  $url
      * @return void
      */
-    function createCertificate($url)
+    private function createCertificate($url): void
     {
         $keyPath = $this->certificatesPath().'/'.$url.'.key';
         $csrPath = $this->certificatesPath().'/'.$url.'.csr';
@@ -330,9 +355,10 @@ class Site
      * @param string $url
      * @param bool $secure
      * @param null|string $proxy
+     * @param bool $varnish
      * @return string
      */
-    function buildNginxConfig($url, $secure, $proxy)
+    function buildNginxConfig(string $url, bool $secure, ?string $proxy = null, $varnish = false)
     {
         $path = $this->certificatesPath();
 
@@ -347,8 +373,17 @@ class Site
         ];
 
         $stub = 'valet.conf';
-        $proxy && $stub = 'proxy.'.$stub;
-        $secure && $stub = 'secure.'.$stub;
+        if ($secure && $varnish) {
+            $stub = 'varnish.secure.' . $stub;
+        } elseif (!$secure && $varnish) {
+            $stub = 'varnish.' . $stub;
+        } elseif ($varnish && $proxy) {
+            throw new \Exception('Proxy and Varnish is not currently supported.');
+        } elseif ($proxy) {
+            $stub = 'proxy.'.$stub;
+        } elseif ($secure) {
+            $stub = 'secure.'.$stub;
+        }
 
         return str_replace(
             array_keys($variables),

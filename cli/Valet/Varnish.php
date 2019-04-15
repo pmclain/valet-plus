@@ -2,100 +2,74 @@
 
 namespace Valet;
 
-class Varnish extends AbstractService
+class Varnish
 {
-    var $brew;
-    var $cli;
-    var $files;
-    var $site;
+    const DEFAULT_VERSION = '4';
+    const NAME = 'varnish';
+
+    /**
+     * @var CommandLine
+     */
+    private $cli;
+
+    /**
+     * @var Filesystem
+     */
+    private $file;
 
     /**
      * Create a new instance.
      *
-     * @param  Brew          $brew
-     * @param  CommandLine   $cli
-     * @param  Filesystem    $files
-     * @param  Configuration $configuration
-     * @param  Site          $site
+     * @param CommandLine $cli
+     * @param Filesystem $file
      */
-    function __construct(
-        Brew $brew,
+    public function __construct(
         CommandLine $cli,
-        Filesystem $files,
-        Configuration $configuration,
-        Site $site
+        Filesystem $file
     ) {
-        $this->cli   = $cli;
-        $this->brew  = $brew;
-        $this->site  = $site;
-        $this->files = $files;
-        parent::__construct($configuration);
+        $this->cli = $cli;
+        $this->file = $file;
     }
 
-    /**
-     * Install the service.
-     *
-     * @return void
-     */
-    function install()
+    public function install()
     {
-        if ($this->installed()) {
-            info('[varnish] already installed');
-        } else {
-            $this->brew->installOrFail('varnish');
-            $this->cli->quietly('sudo brew services stop varnish');
-        }
-        $this->setEnabled(self::STATE_ENABLED);
-        $this->restart();
-    }
-
-    /**
-     * Returns wether varnish is installed or not.
-     *
-     * @return bool
-     */
-    function installed()
-    {
-        return $this->brew->installed('varnish');
+        info('[varnish] Installing');
+        $dockerFile = $this->file->realpath(__DIR__ . '/../../cli/stubs/varnish');
+        $this->cli->runAsUser('docker build ' . $dockerFile . ' -t pmclain/m2-varnish');
     }
 
     /**
      * Restart the service.
      *
+     * @param string|null $version
      * @return void
      */
-    function restart()
+    public function restart(?string $version = null)
     {
-        if (!$this->installed() || !$this->isEnabled()) {
-            return;
-        }
-
         info('[varnish] Restarting');
-        $this->cli->quietlyAsUser('brew services restart varnish');
+        $version = $version ?? static::DEFAULT_VERSION;
+        $this->stop($version);
+        info('[rabbitmq] Starting');
+        $command = sprintf(
+            'docker run -d --name %s-%s -p "6081:6081" -p "6085:6085" -e "BACKENDS_PORT=8080" pmclain/m2-varnish',
+            static::NAME,
+            $version
+        );
+
+        $this->cli->quietlyAsUser($command);
     }
 
     /**
      * Stop the service.
      *
+     * @param string|null $version
      * @return void
      */
-    function stop()
+    public function stop(?string $version = null)
     {
-        if (!$this->installed()) {
-            return;
-        }
-
         info('[varnish] Stopping');
-        $this->cli->quietlyAsUser('brew services stop varnish');
-    }
-
-    /**
-     * Prepare for uninstallation.
-     *
-     * @return void
-     */
-    function uninstall()
-    {
-        $this->stop();
+        $version = $version ?? static::DEFAULT_VERSION;
+        $this->cli->quietlyAsUser('docker stop ' . static::NAME . '-' . $version);
+        $this->cli->quietlyAsUser('docker rm ' . static::NAME . '-' . $version);
     }
 }
