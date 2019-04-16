@@ -42,7 +42,8 @@ class RedisTool
 
         $this->docker->run(
             static::NAME . '-' . $version,
-            $image
+            $image,
+            ['6379:6379']
         );
     }
 
