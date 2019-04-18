@@ -189,12 +189,7 @@ class Site
         if (!$this->files->exists($path)) {
             return null;
         }
-
-        if (preg_match('/proxy_pass (.*);/', $this->files->get($path), $match)) {
-            return trim($match[1]);
-        }
-
-        return null;
+        return strpos($this->files->get($path), 'proxy_http_version') !== false;
     }
 
     private function isVarnished($url): bool
