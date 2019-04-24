@@ -44,7 +44,7 @@ class ConfigValidator
     {
         $currentPhp = $this->phpFpm->linkedPhp();
         $requiredVersion = $this->envConfig->getRequiredPhpVersion();
-        if ($currentPhp !== $requiredVersion) {
+        if ($requiredVersion && $currentPhp !== $requiredVersion) {
             warning(sprintf('PHP %s is required by current project configuration. Attempting to switch.', $requiredVersion));
             $this->phpFpm->switchTo($requiredVersion);
         }
@@ -57,6 +57,9 @@ class ConfigValidator
     {
         $running = $this->docker->getServiceVersion(RedisTool::NAME);
         $required = $this->envConfig->getRequiredRedisVersion();
+        if (is_null($required)) {
+            return;
+        }
 
         if ($running && $running !== $required) {
             $this->serviceVersionException(RedisTool::NAME, $running);
@@ -70,6 +73,9 @@ class ConfigValidator
     {
         $running = $this->docker->getServiceVersion(Mysql::NAME);
         $required = $this->envConfig->getRequiredDatabaseVersion();
+        if (is_null($required)) {
+            return;
+        }
 
         if ($running && $running !== $required) {
             $this->serviceVersionException(Mysql::NAME, $running);
@@ -83,6 +89,9 @@ class ConfigValidator
     {
         $running = $this->docker->getServiceVersion(Elasticsearch::NAME);
         $required = $this->envConfig->getRequiredElasticsearchVersion();
+        if (is_null($required)) {
+            return;
+        }
 
         if ($running && $running !== $required) {
             $this->serviceVersionException(Elasticsearch::NAME, $running);
@@ -94,8 +103,11 @@ class ConfigValidator
      */
     private function validateRabbitMqVersion()
     {
-        $running = $this->docker->getServiceVersion(Elasticsearch::NAME);
+        $running = $this->docker->getServiceVersion(RabbitMq::NAME);
         $required = $this->envConfig->getRequiredRabbitMqVersion();
+        if (is_null($required)) {
+            return;
+        }
 
         if ($running && $running !== $required) {
             $this->serviceVersionException(RabbitMq::NAME, $running);
