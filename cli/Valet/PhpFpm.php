@@ -3,6 +3,7 @@
 namespace Valet;
 
 use DomainException;
+use Valet\Config\ConfigValidator;
 
 class PhpFpm
 {

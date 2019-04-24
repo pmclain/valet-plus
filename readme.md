@@ -21,19 +21,43 @@ chance this will not work out of the box.
 **This assumes Docker is already installed on your Mac**
 1. Clone this repo `git clone git@github.com:pmclain/valet-plus.git`
 2. Enter the repo directory `cd valet-plus`
-3. Checkout this branch `git checkout feature/docker-poc`
-4. Install dependencies `composer install`
-5. Symlink `valet` script `ln -s {pathToValetDirectory}/valet /usr/local/bin/valet`
-6. Install or update Homebrew to the latest version using `brew update`
-7. Add the Homebrew PHP tap for Valet+ via `brew tap henkrehorst/php`
-8. Install PHP 7.2 using Homebrew via `brew install valet-php@7.2`
-9. Run `valet install`
+3. Install dependencies `composer install`
+4. Symlink `valet` script `ln -s {pathToValetDirectory}/valet /usr/local/bin/valet`
+5. Install or update Homebrew to the latest version using `brew update`
+6. Add the Homebrew PHP tap for Valet+ via `brew tap henkrehorst/php`
+7. Install PHP 7.2 using Homebrew via `brew install valet-php@7.2`
+8. Run `valet install`
 
 The Valet+ docs include some troubleshooting instructions for common
 installation issues.
 
-#### Starting/Stopping Specific Service Versions
-Service versions can be specified when starting the services with valet ex:
+#### Environment Definitions
+Valet validates running service versions against environment configuration
+files. Versions are verified when executing `valet` commands and an exception
+is thrown when versions do not match the defined requirements.
+
+##### Magento Cloud Definition Locations
+[Services](https://devdocs.magento.com/guides/v2.3/cloud/project/project-conf-files_services.html) `.magento/services.yaml`  
+* mysql
+* redis
+* elasticsearch
+* rabbitmq
+
+[PHP Version](https://devdocs.magento.com/guides/v2.3/cloud/project/project-conf-files_magento-app.html) `.magento.app.yaml`  
+* php
+
+##### Valet+Containers Environment Configuration File
+Example `.valet.yml`  
+```yaml
+php: 7.2
+mysql: 5.7
+redis: 5
+elasticsearch: 5.2
+rabbitmq: 3
+```
+
+#### Stopping Specific Service Versions
+Service versions can be specified when stopping the services with valet ex:
 ```
 valet start mysql:5.7
 valet start elasticsearch:6

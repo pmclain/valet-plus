@@ -4,12 +4,14 @@ namespace Valet;
 
 use mysqli;
 use MYSQLI_ASSOC;
+use Valet\Config\Environment;
 
 class Mysql
 {
     const DEFAULT_VERSION = '5.7';
     const NAME = 'mysql';
-    const IMAGE = 'mysql';
+    const IMAGE_MYSQL = 'mysql';
+    const IMAGE_MARIADB = 'mariadb';
     const MYSQL_ROOT_PASSWORD = 'root';
 
     /**
@@ -33,6 +35,11 @@ class Mysql
     private $configuration;
 
     /**
+     * @var Environment
+     */
+    private $environment;
+
+    /**
      * @var array
      */
     private $systemDatabase = ['sys', 'performance_schema', 'information_schema', 'mysql@5.7'];
@@ -49,17 +56,20 @@ class Mysql
      * @param Filesystem    $files
      * @param Configuration $configuration
      * @param Docker $docker
+     * @param Environment
      */
     public function __construct(
         CommandLine $cli,
         Filesystem $files,
         Configuration $configuration,
-        Docker $docker
+        Docker $docker,
+        Environment $environment
     ) {
         $this->cli = $cli;
         $this->files = $files;
         $this->configuration = $configuration;
         $this->docker = $docker;
+        $this->environment = $environment;
     }
 
     /**
@@ -70,7 +80,9 @@ class Mysql
     public function stop(?string $version = null): void
     {
         info('[mysql] Stopping');
-        $version = $version ?? static::DEFAULT_VERSION;
+        if (!$version) {
+            $version = $this->environment->getRequiredDatabaseVersion() ?? static::DEFAULT_VERSION;
+        }
         $name = static::NAME . '-' . $version;
 
         $this->docker->stop($name);
@@ -79,25 +91,22 @@ class Mysql
 
     /**
      * Restart the Mysql service.
-     * @param string|null $version
      * @throws \Exception
      */
-    public function restart(?string $version = null): void
+    public function restart(): void
     {
         info('[mysql] Restarting');
-        $version = $version ?? static::DEFAULT_VERSION;
-        $this->stop($version);
-        $this->start($version);
+        $this->stop();
+        $this->start();
     }
 
     /**
-     * @param string|null $version
      * @throws \Exception
      */
-    public function start(?string $version = null): void
+    public function start(): void
     {
-        $version = $version ?? static::DEFAULT_VERSION;
-        $image = static::IMAGE . ':' . $version;
+        $version = $this->environment->getRequiredDatabaseVersion() ?? static::DEFAULT_VERSION;
+        $image = $this->getImageName($version) . ':' . $version;
         $this->docker->installImage($image);
 
         info('[mysql] Starting');
@@ -379,5 +388,14 @@ class Mysql
         }
 
         return self::MYSQL_ROOT_PASSWORD;
+    }
+
+    private function getImageName(string $version): string
+    {
+        if (version_compare($version, 10, '<')) {
+            return static::IMAGE_MYSQL;
+        }
+
+        return static::IMAGE_MARIADB;
     }
 }

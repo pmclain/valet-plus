@@ -50,3 +50,4 @@ class DevTools extends Facade {}
 class Site extends Facade {}
 class Logs extends Facade {}
 class Valet extends Facade {}
+class ConfigValidator extends Facade {}

@@ -2,6 +2,8 @@
 
 namespace Valet;
 
+use Valet\Config\Environment;
+
 class RabbitMq
 {
     const DEFAULT_VERSION = '3.7';
@@ -14,26 +16,33 @@ class RabbitMq
     private $docker;
 
     /**
+     * @var Environment
+     */
+    private $environment;
+
+    /**
      * Create a new instance.
      *
      * @param Docker $docker
+     * @param Environment $environment
      */
     public function __construct(
-        Docker $docker
+        Docker $docker,
+        Environment $environment
     ) {
         $this->docker = $docker;
+        $this->environment = $environment;
     }
 
     /**
      * Restart the service.
      *
-     * @param string|null $version
      * @throws \Exception
      */
-    public function restart(?string $version = null): void
+    public function restart(): void
     {
         info('[rabbitmq] Restarting');
-        $version = $version ?? static::DEFAULT_VERSION;
+        $version = $this->environment->getRequiredRabbitMqVersion() ?? static::DEFAULT_VERSION;
         $this->stop($version);
 
         $image = static::IMAGE . ':' . $version . '-management';
@@ -58,7 +67,9 @@ class RabbitMq
     public function stop(?string $version = null): void
     {
         info('[elasticsearch] Stopping');
-        $version = $version ?? static::DEFAULT_VERSION;
+        if (!$version) {
+            $version = $this->environment->getRequiredElasticsearchVersion() ?? static::DEFAULT_VERSION;
+        }
         $name = static::NAME . '-' . $version;
 
         $this->docker->stop($name);

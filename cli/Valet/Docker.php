@@ -45,6 +45,14 @@ class Docker
         $this->executeCommand($command);
     }
 
+    public function getServiceVersion(string $serviceName): ?string
+    {
+        $output = $this->executeCommand('ps');
+        preg_match('/' . $serviceName . '-(\d+\.*\d*)/', $output, $matches);
+
+        return $matches[1] ?? null;
+    }
+
     /**
      * @param string $name
      * @throws \Exception
@@ -94,12 +102,13 @@ class Docker
 
     /**
      * @param string $command
+     * @return string|null
      * @throws \Exception
      */
-    private function executeCommand(string $command): void
+    private function executeCommand(string $command): ?string
     {
         $this->isRunning();
-        $this->cli->run('docker ' . $command, function ($code, $output) {
+        return $this->cli->run('docker ' . $command, function ($code, $output) {
             if (strpos($output, 'No such container') !== false) {
                 return;
             }

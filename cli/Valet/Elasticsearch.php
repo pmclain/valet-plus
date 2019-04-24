@@ -2,6 +2,8 @@
 
 namespace Valet;
 
+use Valet\Config\Environment;
+
 class Elasticsearch
 {
     const DEFAULT_VERSION = '5.2';
@@ -14,27 +16,34 @@ class Elasticsearch
     private $docker;
 
     /**
+     * @var Environment
+     */
+    private $environment;
+
+    /**
      * Create a new instance.
      *
      * @param Docker $docker
+     * @param Environment $environment
      */
     public function __construct(
-        Docker $docker
+        Docker $docker,
+        Environment $environment
     ) {
         $this->docker = $docker;
+        $this->environment = $environment;
     }
 
     /**
      * Restart the service.
      *
-     * @param string|null $version
      * @throws \Exception
      */
-    public function restart(?string $version = null): void
+    public function restart(): void
     {
         info('[elasticsearch] Restarting');
-        $version = $version ?? static::DEFAULT_VERSION;
-        $this->stop($version);
+        $version = $this->environment->getRequiredElasticsearchVersion() ?? static::DEFAULT_VERSION;
+        $this->stop();
 
         $image = static::IMAGE . ':' . $version;
         $this->docker->installImage($image);
@@ -58,7 +67,9 @@ class Elasticsearch
     public function stop(?string $version = null): void
     {
         info('[elasticsearch] Stopping');
-        $version = $version ?? static::DEFAULT_VERSION;
+        if (!$version) {
+            $version = $this->environment->getRequiredElasticsearchVersion() ?? static::DEFAULT_VERSION;
+        }
         $name = static::NAME . '-' . $version;
 
         $this->docker->stop($name);

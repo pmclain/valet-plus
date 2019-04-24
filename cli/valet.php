@@ -26,6 +26,13 @@ $version = new Version('1.0.27' , __DIR__ . '/../');
 
 $app = new Application('Valet+', $version->getVersion());
 
+$dispatcher = new \Symfony\Component\EventDispatcher\EventDispatcher();
+$dispatcher->addListener(\Symfony\Component\Console\ConsoleEvents::COMMAND, function (\Symfony\Component\Console\Event\ConsoleCommandEvent $event) use ($app) {
+    ConfigValidator::validate($event);
+});
+
+$app->setDispatcher($dispatcher);
+
 /**
  * Prune missing directories and symbolic links on every command.
  */
@@ -325,10 +332,7 @@ if (is_dir(VALET_HOME_PATH)) {
             return;
         }
 
-        foreach($services as $arg) {
-            $arg = explode(':', $arg);
-            $version = $arg[1] ?? null;
-            $service = $arg[0];
+        foreach($services as $service) {
             switch($service) {
                 case 'nginx': {
                     Nginx::restart();
@@ -336,7 +340,7 @@ if (is_dir(VALET_HOME_PATH)) {
                 }
                 case 'mysql':
                 case 'mariadb': {
-                    Mysql::restart($version);
+                    Mysql::restart();
                     break;
                 }
                 case 'php': {
@@ -348,7 +352,7 @@ if (is_dir(VALET_HOME_PATH)) {
                     break;
                 }
                 case 'redis': {
-                    RedisTool::restart($version);
+                    RedisTool::restart();
                     break;
                 }
                 case 'mailhog': {
@@ -356,11 +360,11 @@ if (is_dir(VALET_HOME_PATH)) {
                     break;
                 }
                 case 'elasticsearch': {
-                    Elasticsearch::restart($version);
+                    Elasticsearch::restart();
                     break;
                 }
                 case 'rabbitmq': {
-                    RabbitMq::restart($version);
+                    RabbitMq::restart();
                     break;
                 }
                 case 'varnish': {
@@ -449,14 +453,17 @@ if (is_dir(VALET_HOME_PATH)) {
             return;
         }
 
-        foreach($services as $service) {
+        foreach($services as $arg) {
+            $arg = explode(':', $arg);
+            $version = $arg[1] ?? null;
+            $service = $arg[0];
             switch($service) {
                 case 'nginx': {
                     Nginx::stop();
                     break;
                 }
                 case 'mysql': {
-                    Mysql::stop();
+                    Mysql::stop($version);
                     break;
                 }
                 case 'php': {
@@ -464,7 +471,7 @@ if (is_dir(VALET_HOME_PATH)) {
                     break;
                 }
                 case 'redis': {
-                    RedisTool::stop();
+                    RedisTool::stop($version);
                     break;
                 }
                 case 'mailhog': {
@@ -472,11 +479,11 @@ if (is_dir(VALET_HOME_PATH)) {
                     break;
                 }
                 case 'elasticsearch': {
-                    Elasticsearch::stop();
+                    Elasticsearch::stop($version);
                     break;
                 }
                 case 'rabbitmq': {
-                    RabbitMq::stop();
+                    RabbitMq::stop($version);
                     break;
                 }
                 case 'varnish': {
