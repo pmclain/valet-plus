@@ -9,7 +9,7 @@ use Symfony\Component\Yaml\Yaml;
 
 class Valet
 {
-    private const FILENAME = '.valet.yaml';
+    private const FILENAME = '.valet.yml';
 
     private const PATH_PHP_VERSION = '[php]';
     private const PATH_REDIS_VERSION = '[redis]';
