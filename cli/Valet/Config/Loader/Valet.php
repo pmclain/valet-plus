@@ -93,7 +93,7 @@ class Valet
         $config = $this->loadConfig($filepath);
         $propertyAccessor = new PropertyAccessor();
 
-        return $propertyAccessor->getValue($config, $configPath);
+        return (string) $propertyAccessor->getValue($config, $configPath);
     }
 
     private function loadConfig(string $path): array

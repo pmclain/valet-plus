@@ -57,7 +57,7 @@ class ConfigValidator
     {
         $running = $this->docker->getServiceVersion(RedisTool::NAME);
         $required = $this->envConfig->getRequiredRedisVersion();
-        if (is_null($required)) {
+        if (empty($required)) {
             return;
         }
 
@@ -73,7 +73,7 @@ class ConfigValidator
     {
         $running = $this->docker->getServiceVersion(Mysql::NAME);
         $required = $this->envConfig->getRequiredDatabaseVersion();
-        if (is_null($required)) {
+        if (empty($required)) {
             return;
         }
 
@@ -89,7 +89,7 @@ class ConfigValidator
     {
         $running = $this->docker->getServiceVersion(Elasticsearch::NAME);
         $required = $this->envConfig->getRequiredElasticsearchVersion();
-        if (is_null($required)) {
+        if (empty($required)) {
             return;
         }
 
@@ -105,7 +105,7 @@ class ConfigValidator
     {
         $running = $this->docker->getServiceVersion(RabbitMq::NAME);
         $required = $this->envConfig->getRequiredRabbitMqVersion();
-        if (is_null($required)) {
+        if (empty($required)) {
             return;
         }
 
