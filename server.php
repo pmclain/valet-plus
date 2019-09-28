@@ -21,6 +21,10 @@ $uri = urldecode(
     explode("?", $_SERVER['REQUEST_URI'])[0]
 );
 
+if (isset($_GET['opflush'])) {
+    echo 'Opcache reset: ' . opcache_reset() . PHP_EOL;
+}
+
 $siteName = basename(
     // Filter host to support xip.io feature
     $_SERVER['HTTP_HOST'],
