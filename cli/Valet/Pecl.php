@@ -13,6 +13,7 @@ class Pecl extends AbstractPecl
     const APCU_EXTENSION = 'apcu';
     const APCU_BC_EXTENSION = 'apcu_bc';
     const GEOIP_EXTENSION = 'geoip';
+    const AST_EXTENSION = 'ast';
 
     // Extension aliases.
     const APCU_BC_ALIAS = 'apc';
@@ -62,6 +63,13 @@ class Pecl extends AbstractPecl
             '7.2' => '1.1.1',
             '7.1' => '1.1.1',
             '7.0' => '1.1.1',
+            'extension_type' => self::NORMAL_EXTENSION_TYPE
+        ],
+        self::AST_EXTENSION => [
+            '7.3' => '1.0.3',
+            '7.2' => '1.0.3',
+            '7.1' => '1.0.3',
+            '7.0' => '1.0.3',
             'extension_type' => self::NORMAL_EXTENSION_TYPE
         ]
     ];

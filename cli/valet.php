@@ -715,6 +715,42 @@ if (is_dir(VALET_HOME_PATH)) {
         }
     })->descriptions('Enable / disable Xdebug');
 
+    $app->command('ast [mode]', function ($input, $mode) {
+        $modes = ['on', 'enable', 'off', 'disable'];
+
+        if (!in_array($mode, $modes)) {
+            throw new Exception('Mode not found. Available modes: ' . implode(', ', $modes));
+        }
+
+        $restart = false;
+
+        if (Pecl::isInstalled('ast') === false) {
+            info('[PECL] ast not found, installing...');
+            Pecl::installExtension('ast');
+            $restart = true;
+        }
+
+        if (Pecl::isEnabled('ast') === false && ($mode === 'on' || $mode === 'enable')) {
+            info("[PECL] Enabling ast extension");
+            $restart = true;
+            Pecl::enable('ast');
+        } elseif ($mode === 'on' || $mode === 'enable') {
+            info("[PECL] ast extension is already enabled!");
+        }
+
+        if (Pecl::isEnabled('ast') === true && ($mode === 'off' || $mode === 'disable')) {
+            info("[PECL] Disabling ast extension");
+            $restart = true;
+            Pecl::disable('ast');
+        } elseif ($mode === 'off' || $mode === 'disable') {
+            info("[PECL] ast extension is already uninstalled!");
+        }
+
+        if ($restart) {
+            PhpFpm::restart();
+        }
+    })->descriptions('Enable / disable ast');
+
     $app->command('ioncube [mode]', function ($mode) {
         $modes = ['on', 'enable', 'off', 'disable'];
 
