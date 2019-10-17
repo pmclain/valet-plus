@@ -62,7 +62,7 @@ class RedisTool
      * @param string|null $version
      * @throws \Exception
      */
-    public function stop(?string $version): void
+    public function stop(?string $version = null): void
     {
         info('[redis] Stopping');
         if (!$version) {
