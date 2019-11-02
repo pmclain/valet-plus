@@ -39,7 +39,7 @@ class RedisTool
      *
      * @throws \Exception
      */
-    public function restart(): void
+    public function restart()
     {
         info('[redis] Restarting');
         $version = $this->environment->getRequiredRedisVersion() ?? static::DEFAULT_VERSION;
@@ -62,7 +62,7 @@ class RedisTool
      * @param string|null $version
      * @throws \Exception
      */
-    public function stop(?string $version = null): void
+    public function stop($version = null)
     {
         info('[redis] Stopping');
         if (!$version) {

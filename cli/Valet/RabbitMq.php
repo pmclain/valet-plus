@@ -39,7 +39,7 @@ class RabbitMq
      *
      * @throws \Exception
      */
-    public function restart(): void
+    public function restart()
     {
         info('[rabbitmq] Restarting');
         $version = $this->environment->getRequiredRabbitMqVersion() ?? static::DEFAULT_VERSION;
@@ -64,7 +64,7 @@ class RabbitMq
      * @param string|null $version
      * @throws \Exception
      */
-    public function stop(?string $version = null): void
+    public function stop($version = null)
     {
         info('[elasticsearch] Stopping');
         if (!$version) {

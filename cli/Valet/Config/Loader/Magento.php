@@ -12,14 +12,14 @@ use Symfony\Component\Yaml\Yaml;
  */
 class Magento
 {
-    private const FILENAME_PHP = '.magento.app.yaml';
-    private const FILENAME_SERVICES = '.magento/services.yaml';
+    const FILENAME_PHP = '.magento.app.yaml';
+    const FILENAME_SERVICES = '.magento/services.yaml';
 
-    private const PATH_PHP_VERSION = '[type]';
-    private const PATH_REDIS_VERSION = '[redis][type]';
-    private const PATH_ELASTICSEARH_VERSION = '[elasticsearch][type]';
-    private const PATH_DATABASE_VERSION = '[mysql][type]';
-    private const PATH_RABBITMQ_VERSION = '[rabbitmq][type]';
+    const PATH_PHP_VERSION = '[type]';
+    const PATH_REDIS_VERSION = '[redis][type]';
+    const PATH_ELASTICSEARH_VERSION = '[elasticsearch][type]';
+    const PATH_DATABASE_VERSION = '[mysql][type]';
+    const PATH_RABBITMQ_VERSION = '[rabbitmq][type]';
 
     /**
      * @var Filesystem
@@ -37,7 +37,7 @@ class Magento
         $this->file = $file;
     }
 
-    public function getPhpVersion(): ?string
+    public function getPhpVersion()
     {
         $path = $this->getExpectedConfigPath(static::FILENAME_PHP);
         if (!$this->file->exists($path)) {
@@ -50,7 +50,7 @@ class Magento
         return $version;
     }
 
-    public function getRedisVersion(): ?string
+    public function getRedisVersion()
     {
         $path = $this->getExpectedConfigPath(static::FILENAME_SERVICES);
         if (!$this->file->exists($path)) {
@@ -63,7 +63,7 @@ class Magento
         return $version;
     }
 
-    public function getDatabaseVersion(): ?string
+    public function getDatabaseVersion()
     {
         $path = $this->getExpectedConfigPath(static::FILENAME_SERVICES);
         if (!$this->file->exists($path)) {
@@ -76,7 +76,7 @@ class Magento
         return $version;
     }
 
-    public function getElasticsearchVersion(): ?string
+    public function getElasticsearchVersion()
     {
         $path = $this->getExpectedConfigPath(static::FILENAME_SERVICES);
         if (!$this->file->exists($path)) {
@@ -89,7 +89,7 @@ class Magento
         return $version;
     }
 
-    public function getRabbitMqVersion(): ?string
+    public function getRabbitMqVersion()
     {
         $path = $this->getExpectedConfigPath(static::FILENAME_SERVICES);
         if (!$this->file->exists($path)) {

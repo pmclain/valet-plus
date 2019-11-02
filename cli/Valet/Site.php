@@ -255,7 +255,7 @@ class Site
      * @param  string $url
      * @return void
      */
-    public function secure($url): void
+    public function secure($url)
     {
         $proxied = $this->proxied($url);
         $this->configure($url, true, $proxied, $this->isVarnished($url));
@@ -265,7 +265,7 @@ class Site
      * @param string $url
      * @param bool $enable
      */
-    public function varnish(string $url, $enable = false): void
+    public function varnish(string $url, $enable = false)
     {
         $this->configure($url, in_array($url, $this->secured()), $this->proxied($url), $enable);
     }
@@ -276,7 +276,7 @@ class Site
      * @param  string  $url
      * @return void
      */
-    private function createCertificate($url): void
+    private function createCertificate($url)
     {
         $keyPath = $this->certificatesPath().'/'.$url.'.key';
         $csrPath = $this->certificatesPath().'/'.$url.'.csr';
@@ -353,7 +353,7 @@ class Site
      * @param bool $varnish
      * @return string
      */
-    function buildNginxConfig(string $url, bool $secure, ?string $proxy = null, $varnish = false)
+    function buildNginxConfig(string $url, bool $secure, $proxy = null, $varnish = false)
     {
         $path = $this->certificatesPath();
 

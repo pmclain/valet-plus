@@ -33,7 +33,7 @@ class Docker
         array $ports = [],
         string $volume = '',
         array $env = []
-    ): void {
+    ) {
         $command = 'run -d --name ' . $name;
         $command .= $this->buildPortString($ports);
         if (!empty($volume)) {
@@ -45,7 +45,7 @@ class Docker
         $this->executeCommand($command);
     }
 
-    public function getServiceVersion(string $serviceName): ?string
+    public function getServiceVersion(string $serviceName)
     {
         $output = $this->executeCommand('ps');
         preg_match('/' . $serviceName . '-(\d+\.*\d*)/', $output, $matches);
@@ -57,7 +57,7 @@ class Docker
      * @param string $name
      * @throws \Exception
      */
-    public function stop(string $name): void
+    public function stop(string $name)
     {
         $this->executeCommand('stop ' . $name);
     }
@@ -66,7 +66,7 @@ class Docker
      * @param string $name
      * @throws \Exception
      */
-    public function remove(string $name): void
+    public function remove(string $name)
     {
         $this->executeCommand('rm ' . $name);
     }
@@ -94,7 +94,7 @@ class Docker
      * @param string $command
      * @throws \Exception
      */
-    private function executePassthruCommand(string $command): void
+    private function executePassthruCommand(string $command)
     {
         $this->isRunning();
         $this->cli->passthru('docker ' . $command);
@@ -105,7 +105,7 @@ class Docker
      * @return string|null
      * @throws \Exception
      */
-    private function executeCommand(string $command): ?string
+    private function executeCommand(string $command)
     {
         $this->isRunning();
         return $this->cli->run('docker ' . $command, function ($code, $output) {
@@ -119,7 +119,7 @@ class Docker
     /**
      * @throws \Exception
      */
-    private function isRunning(): void
+    private function isRunning()
     {
         $this->cli->run('docker', function ($code, $output) {
             throw new \Exception($output);

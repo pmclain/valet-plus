@@ -6,7 +6,8 @@ use Valet\Config\Environment;
 
 class Elasticsearch
 {
-    const DEFAULT_VERSION = '5.2';
+//    const DEFAULT_VERSION = '5.2';
+    const DEFAULT_VERSION = '2.4';
     const NAME = 'elasticsearch';
     const IMAGE = 'elasticsearch';
 
@@ -39,7 +40,7 @@ class Elasticsearch
      *
      * @throws \Exception
      */
-    public function restart(): void
+    public function restart()
     {
         info('[elasticsearch] Restarting');
         $version = $this->environment->getRequiredElasticsearchVersion() ?? static::DEFAULT_VERSION;
@@ -64,7 +65,7 @@ class Elasticsearch
      * @param string|null $version
      * @throws \Exception
      */
-    public function stop(?string $version = null): void
+    public function stop($version = null)
     {
         info('[elasticsearch] Stopping');
         if (!$version) {

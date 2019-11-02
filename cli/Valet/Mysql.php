@@ -77,7 +77,7 @@ class Mysql
      * @param string|null $version
      * @throws \Exception
      */
-    public function stop(?string $version = null): void
+    public function stop($version = null)
     {
         info('[mysql] Stopping');
         if (!$version) {
@@ -93,7 +93,7 @@ class Mysql
      * Restart the Mysql service.
      * @throws \Exception
      */
-    public function restart(): void
+    public function restart()
     {
         info('[mysql] Restarting');
         $this->stop();
@@ -103,7 +103,7 @@ class Mysql
     /**
      * @throws \Exception
      */
-    public function start(): void
+    public function start()
     {
         $version = $this->environment->getRequiredDatabaseVersion() ?? static::DEFAULT_VERSION;
         $image = $this->getImageName($version) . ':' . $version;

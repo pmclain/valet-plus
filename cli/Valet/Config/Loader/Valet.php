@@ -9,13 +9,13 @@ use Symfony\Component\Yaml\Yaml;
 
 class Valet
 {
-    private const FILENAME = '.valet.yml';
+    const FILENAME = '.valet.yml';
 
-    private const PATH_PHP_VERSION = '[php]';
-    private const PATH_REDIS_VERSION = '[redis]';
-    private const PATH_ELASTICSEARH_VERSION = '[elasticsearch]';
-    private const PATH_DATABASE_VERSION = '[mysql]';
-    private const PATH_RABBITMQ_VERSION = '[rabbitmq]';
+    const PATH_PHP_VERSION = '[php]';
+    const PATH_REDIS_VERSION = '[redis]';
+    const PATH_ELASTICSEARH_VERSION = '[elasticsearch]';
+    const PATH_DATABASE_VERSION = '[mysql]';
+    const PATH_RABBITMQ_VERSION = '[rabbitmq]';
 
     /**
      * @var Filesystem
@@ -33,7 +33,7 @@ class Valet
         $this->file = $file;
     }
 
-    public function getPhpVersion(): ?string
+    public function getPhpVersion()
     {
         $path = $this->getExpectedConfigPath(static::FILENAME);
         if (!$this->file->exists($path)) {
@@ -43,7 +43,7 @@ class Valet
         return $this->getValue($path, static::PATH_PHP_VERSION);
     }
 
-    public function getRedisVersion(): ?string
+    public function getRedisVersion()
     {
         $path = $this->getExpectedConfigPath(static::FILENAME);
         if (!$this->file->exists($path)) {
@@ -53,7 +53,7 @@ class Valet
         return $this->getValue($path, static::PATH_REDIS_VERSION);
     }
 
-    public function getDatabaseVersion(): ?string
+    public function getDatabaseVersion()
     {
         $path = $this->getExpectedConfigPath(static::FILENAME);
         if (!$this->file->exists($path)) {
@@ -63,7 +63,7 @@ class Valet
         return $this->getValue($path, static::PATH_DATABASE_VERSION);
     }
 
-    public function getElasticsearchVersion(): ?string
+    public function getElasticsearchVersion()
     {
         $path = $this->getExpectedConfigPath(static::FILENAME);
         if (!$this->file->exists($path)) {
@@ -73,7 +73,7 @@ class Valet
         return $this->getValue($path, static::PATH_ELASTICSEARH_VERSION);
     }
 
-    public function getRabbitMqVersion(): ?string
+    public function getRabbitMqVersion()
     {
         $path = $this->getExpectedConfigPath(static::FILENAME);
         if (!$this->file->exists($path)) {

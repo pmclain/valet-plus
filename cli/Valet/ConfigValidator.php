@@ -119,7 +119,7 @@ class ConfigValidator
      * @param string $version
      * @throws \Exception
      */
-    private function serviceVersionException(string $serviceName, string $version): void
+    private function serviceVersionException(string $serviceName, string $version)
     {
         throw new \Exception(sprintf(
             'The running version of %s does not match project requirements. To stop this service run:' . PHP_EOL

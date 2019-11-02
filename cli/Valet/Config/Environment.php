@@ -26,7 +26,7 @@ class Environment
         $this->valet = $valet;
     }
 
-    public function getRequiredPhpVersion(): ?string
+    public function getRequiredPhpVersion()
     {
         $version = $this->magento->getPhpVersion();
         if (!$version) {
@@ -36,7 +36,7 @@ class Environment
         return $version;
     }
 
-    public function getRequiredRedisVersion(): ?string
+    public function getRequiredRedisVersion()
     {
         $version = $this->magento->getRedisVersion();
         if (!$version) {
@@ -46,7 +46,7 @@ class Environment
         return $version;
     }
 
-    public function getRequiredDatabaseVersion(): ?string
+    public function getRequiredDatabaseVersion()
     {
         $version = $this->magento->getDatabaseVersion();
         if (!$version) {
@@ -56,7 +56,7 @@ class Environment
         return $version;
     }
 
-    public function getRequiredElasticsearchVersion(): ?string
+    public function getRequiredElasticsearchVersion()
     {
         $version = $this->magento->getElasticsearchVersion();
         if (!$version) {
@@ -66,7 +66,7 @@ class Environment
         return $version;
     }
 
-    public function getRequiredRabbitMqVersion(): ?string
+    public function getRequiredRabbitMqVersion()
     {
         $version = $this->magento->getRabbitMqVersion();
         if (!$version) {
